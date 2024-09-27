@@ -6,7 +6,9 @@ inherit mix
 # If this is git based prefer versioned ones if they exist
 # DEFAULT_PREFERENCE = "-1"
 
-SRC_URI += "<%= @project_src_uri %>"
+SRC_URI += " \
+    <%= @project_src_uri %> \
+    "
 SRCREV = "<%= @project_src_rev %>"
 S = "${WORKDIR}/git"
 

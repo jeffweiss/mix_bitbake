@@ -118,6 +118,9 @@ defmodule Mix.Tasks.Bitbake do
       [] ->
         Mix.raise("Getting url for git repo failed")
 
+      [%{"host" => host, "path" => path, "username" => username}] ->
+        "git://#{username}@#{host}/#{path};protocol=ssh;nobranch=1;branch=#{branch}"
+
       [%{"host" => host, "path" => path}] ->
         "git://#{host}/#{path};branch=#{branch}"
 
