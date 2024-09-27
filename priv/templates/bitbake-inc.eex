@@ -1,0 +1,8 @@
+SRC_URI += " \<%= for dep <- @deps do%>
+<%= dep.uri %> \ <% end %>
+"
+<%= for dep <- @deps do %>
+SRCREV_FORMAT .= "_<%= dep.name %>"
+SRCREV_<%= dep.name %> = "<%= dep.sha %>"
+EXTRA_OECARGO_PATHS += "${WORKDIR}/<%= dep.name %>"
+<% end %>

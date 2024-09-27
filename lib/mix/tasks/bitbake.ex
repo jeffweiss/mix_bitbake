@@ -19,12 +19,24 @@ defmodule Mix.Tasks.Bitbake do
     template(target, assigns)
 
     Mix.shell().info([:green, "* Wrote ", :reset, target])
+
+    target = make_recipe_includes_filename(File.cwd!(), project)
+    assigns = make_assigns(File.cwd!(), project)
+    template(target, assigns, "bitbake-inc.eex")
+
+    Mix.shell().info([:green, "* Wrote ", :reset, target])
   end
 
   defp make_recipe_filename(dir, project) do
     version = Keyword.fetch!(project, :version)
     app = name(project)
     Path.join([dir, "#{app}_#{version}.bb"])
+  end
+
+  defp make_recipe_includes_filename(dir, project) do
+    version = Keyword.fetch!(project, :version)
+    app = name(project)
+    Path.join([dir, "#{app}-#{version}.inc"])
   end
 
   defp make_assigns(dir, project) do
@@ -36,7 +48,8 @@ defmodule Mix.Tasks.Bitbake do
       {:homepage, homepage(project)},
       {:project_src_uri, src_uri(dir)},
       {:project_src_rev, git_ref(dir)},
-      {:lic_files, license_files(dir)}
+      {:lic_files, license_files(dir)},
+      {:deps, deps(project)}
     ]
   end
 
@@ -59,6 +72,31 @@ defmodule Mix.Tasks.Bitbake do
   # relies on ex_doc mix project fields, if exists
   defp homepage(project) do
     Keyword.get(project, :homepage_url, "")
+  end
+
+  defp deps(project) do
+    Mix.Dep.cached()
+    |> Enum.filter(fn
+      %Mix.Dep{scm: Mix.SCM.Git, opts: opts} ->
+        git_uri = Keyword.fetch!(opts, :git)
+        String.starts_with?(git_uri, "git@")
+
+      _ ->
+        false
+    end)
+    |> Enum.map(fn
+      %Mix.Dep{app: name, opts: opts} ->
+        uri = Keyword.fetch!(opts, :git)
+        lock = Keyword.fetch!(opts, :lock)
+        sha = elem(lock, 2)
+        ref = elem(lock, 3)
+
+        %{
+          name: name,
+          uri: "git://#{uri};protocol=ssh;nobranch=1,name=#{name};destsuffix=#{name}",
+          sha: sha
+        }
+    end)
   end
 
   # relies on hex publish package, if exists
@@ -139,9 +177,9 @@ defmodule Mix.Tasks.Bitbake do
     ref |> String.trim("\n")
   end
 
-  defp template(target, assigns) do
+  defp template(target, assigns, template \\ "bitbake.eex") do
     Application.app_dir(:mix_bitbake, Path.join("priv", "templates"))
-    |> Path.join("bitbake.eex")
+    |> Path.join(template)
     |> copy_template(target, assigns)
   end
 
