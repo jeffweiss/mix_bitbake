@@ -84,15 +84,19 @@ defmodule Mix.Tasks.Bitbake do
       _ ->
         false
     end)
+    |> Enum.sort_by(fn dep -> dep.app end)
     |> Enum.map(fn
       %Mix.Dep{app: name, opts: opts} ->
         uri = Keyword.fetch!(opts, :git)
         lock = Keyword.fetch!(opts, :lock)
         sha = elem(lock, 2)
+        regex_caps = Regex.named_captures(~r/(?<username>[^@]+)@(?<host>[^:]+):(?<path>.+)/, uri)
 
         %{
           name: name,
-          uri: "git://#{uri};protocol=ssh;nobranch=1,name=#{name};destsuffix=#{name}",
+          # rebuilding because most of the git uris have user@host:path
+          # and we need user@host/path
+          uri: "git://#{regex_caps["username"]}@#{regex_caps["host"]}/#{regex_caps["path"]};protocol=ssh;nobranch=1;name=#{name};destsuffix=#{name}",
           sha: sha
         }
     end)
