@@ -96,7 +96,8 @@ defmodule Mix.Tasks.Bitbake do
           name: name,
           # rebuilding because most of the git uris have user@host:path
           # and we need user@host/path
-          uri: "git://#{regex_caps["username"]}@#{regex_caps["host"]}/#{regex_caps["path"]};protocol=ssh;nobranch=1;name=#{name};destsuffix=#{name}",
+          uri:
+            "git://#{regex_caps["username"]}@#{regex_caps["host"]}/#{regex_caps["path"]};protocol=ssh;nobranch=1;name=#{name};destsuffix=#{name}",
           sha: sha
         }
     end)
@@ -141,12 +142,16 @@ defmodule Mix.Tasks.Bitbake do
     parse_uri(uri, branch)
   end
 
-  defp parse_uri(uri, branch) do
+  def parse_uri(uri, branch) do
     branch = String.trim(branch)
     uri = uri |> String.trim("\n")
 
     scp =
       [
+        Regex.named_captures(
+          ~r/(?<proto>[^@]+):\/\/(?<username>[^@]+)@(?<host>[^:\/]+)\/(?<path>.+)/,
+          uri
+        ),
         Regex.named_captures(~r/(?<proto>[^@]+):\/\/(?<host>[^:]+)/, uri),
         Regex.named_captures(~r/(?<username>[^@]+)@(?<host>[^:]+):(?<path>.+)/, uri)
       ]
@@ -158,6 +163,12 @@ defmodule Mix.Tasks.Bitbake do
     case scp do
       [] ->
         Mix.raise("Getting url for git repo failed")
+
+      # Explicitly transform an https url with a username and password to one that uses
+      # ssh instead to handle issues where CI runners checkout via https with a token
+      # but everyone else does via ssh
+      [%{"proto" => "https", "host" => host, "path" => path, "username" => _username} | _] ->
+        "git://git@#{host}/#{path};protocol=ssh;nobranch=1;branch=#{branch}"
 
       [%{"host" => host, "path" => path, "username" => username}] ->
         "git://#{username}@#{host}/#{path};protocol=ssh;nobranch=1;branch=#{branch}"
