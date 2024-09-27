@@ -49,7 +49,7 @@ defmodule Mix.Tasks.Bitbake do
       {:project_src_uri, src_uri(dir)},
       {:project_src_rev, git_ref(dir)},
       {:lic_files, license_files(dir)},
-      {:deps, deps(project)}
+      {:deps, deps()}
     ]
   end
 
@@ -74,7 +74,7 @@ defmodule Mix.Tasks.Bitbake do
     Keyword.get(project, :homepage_url, "")
   end
 
-  defp deps(project) do
+  defp deps() do
     Mix.Dep.cached()
     |> Enum.filter(fn
       %Mix.Dep{scm: Mix.SCM.Git, opts: opts} ->
@@ -89,7 +89,6 @@ defmodule Mix.Tasks.Bitbake do
         uri = Keyword.fetch!(opts, :git)
         lock = Keyword.fetch!(opts, :lock)
         sha = elem(lock, 2)
-        ref = elem(lock, 3)
 
         %{
           name: name,
