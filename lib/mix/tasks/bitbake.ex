@@ -23,7 +23,7 @@ defmodule Mix.Tasks.Bitbake do
 
   defp make_recipe_filename(dir, project) do
     version = Keyword.fetch!(project, :version)
-    app = Keyword.fetch!(project, :app)
+    app = name(project)
     Path.join([dir, "#{app}_#{version}.bb"])
   end
 
@@ -41,7 +41,15 @@ defmodule Mix.Tasks.Bitbake do
   end
 
   defp name(project) do
-    Keyword.fetch!(project, :app)
+    project
+    |> Keyword.fetch!(:app)
+    |> dashify
+  end
+
+  defp dashify(token) do
+    token
+    |> to_string
+    |> String.replace("_", "-")
   end
 
   defp description(project) do
